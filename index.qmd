@@ -1,0 +1,183 @@
+---
+title: "Graficación en ggplot2 y plotly"
+format: html
+toc: true
+lang: es
+---
+
+# Carga de bibliotecas
+
+```{r}
+#| label: carga-bibliotecas
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(plotly)
+library(DT)
+library(scales)
+library(palmerpenguins)
+```
+
+
+# Carga de datos
+
+```{r}
+#| label: carga-datos
+#| warning: false
+#| message: false
+
+# Carga de los datos de países
+paises <- read_csv(
+  "https://raw.githubusercontent.com/pf0953-programacionr/2024-ii/refs/heads/main/datos/natural-earth/paises-join-esperanzavida.csv"
+)
+```
+
+
+```{r}
+#| label: tabla-paises
+
+paises |>
+  arrange(NAME) |>
+  datatable(
+    options = list(
+      pageLenght = 10,
+      language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
+    )
+  )
+```
+
+## Gráficos con ggplot2
+
+### Gráficos básicos
+
+#### Gráficos de dispersión de PIB per cápita vs esperanza de vida al nacer
+
+```{r}
+#| label: ggplot2-1
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY)) +
+  geom_point() +
+  scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
+```{r}
+#| label: ggplot2-2
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, color = INCOME_GRP)) +
+  geom_point() +
+  scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
+
+```{r}
+#| label: ggplot2-3
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, shape = CONTINENT)) +
+  geom_point() +
+  scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
+
+```{r}
+#| label: ggplot2-4
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+# con formas y colores correspondientes al continente
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, shape = CONTINENT, color = CONTINENT)) +
+  geom_point() +
+  scale_x_continuous(labels = comma, limits = c(0, NA)) +
+  scale_color_manual(values = c("red", "blue", "green", "purple", "orange", "brown", "pink", "yellow"))
+```
+
+
+```{r}
+#| label: ggplot4-4
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+# con tamaño de puntos correspondiente a la población
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, size = POP_EST, color = CONTINENT)) +
+  geom_point() +
+  scale_size_continuous(labels = comma) +
+  scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
+
+```{r}
+#| label: ggplot4-5
+#| warning: false
+#| message: false
+
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+# + curva de tendencia
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY)) +
+  geom_point() +
+  geom_smooth(method = 'loess', se = TRUE) +
+  scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
+```{r}
+#| label: ggplot2-6
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+# en África y Europa coloreado por continente
+# + curva de tendencia
+paises |>
+  filter(CONTINENT == 'Africa' | CONTINENT == 'Europe') |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, color = CONTINENT)) +
+  # geom_point() +
+  geom_smooth() +
+  scale_x_continuous(labels = comma, limits = c(0, NA)) +
+  scale_y_continuous(labels = comma, limits = c(50, 90))
+```
+
+
+```{r}
+#| label: ggplo2-7
+#| warning: false
+#| message: false
+
+penguins |>
+  ggplot(aes(x = body_mass_g, y = bill_length_mm, color = island, size = flipper_length_mm)) +
+  geom_point()
+```
+
+
+## Facets
+
+```{r}
+#| label: ggplot2-8
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+# + paneles por continente
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY)) +
+  geom_point() +
+  facet_wrap(~ SUBREGION, nrow = 6) +
+  scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
