@@ -17,6 +17,8 @@ library(plotly)
 library(DT)
 library(scales)
 library(palmerpenguins)
+library(ggthemes)
+library(hrbrthemes)
 ```
 
 
@@ -177,7 +179,339 @@ penguins |>
 paises |>
   ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY)) +
   geom_point() +
-  facet_wrap(~ SUBREGION, nrow = 6) +
+  facet_wrap(~ INCOME_GRP, ncol = 2) +
   scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
+
+```{r}
+#| label: ggplot-9
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+# + paneles por región y subregión de la ONU
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY)) +
+  geom_point() +
+  facet_grid(REGION_UN ~ INCOME_GRP) +
+  scale_x_continuous(labels = comma, limits = c(0, NA))
+```
+
+### Títulos, sutítulos y etiquetas
+
+```{r}
+#| label: ggplot2-10
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+# en África y Europa coloreado por continente
+# + curva de tendencia
+paises |>
+  filter(CONTINENT == 'Africa' | CONTINENT == 'Europe') |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, color = CONTINENT)) +
+  geom_point() +
+  geom_smooth() +
+  scale_x_continuous(labels = comma, limits = c(0, NA)) +
+  scale_y_continuous(labels = comma, limits = c(50, 90)) +
+  ggtitle("PIB per cápita vs esperanza de vida al nacer por continente") +
+  xlab("PIB per cápita  (USD)") +
+  ylab("Esperanza de vida (años)") +
+  labs(subtitle = "Datos de África y Europa", 
+       caption = "Fuentes: Natural Earth y Banco Mundial",
+       color = "Continente") +
+  theme_modern_rc()
+```
+
+### Colores
+
+```{r}
+#| label: ggplot2-11
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+#  coloreado por continente
+paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, color = CONTINENT)) +
+  geom_point() +
+  geom_smooth() +
+  scale_x_continuous(labels = comma, limits = c(0, NA)) +
+  scale_y_continuous(labels = comma, limits = c(50, 90)) +
+  ggtitle("PIB per cápita vs esperanza de vida al nacer por continente") +
+  xlab("PIB per cápita  (USD)") +
+  ylab("Esperanza de vida (años)") +
+  labs(caption = "Fuentes: Natural Earth y Banco Mundial",
+       color = "Continente") +
+  scale_colour_brewer(palette = "BrBG", direction = -1) +
+  theme_ipsum() # estilo de hrbrthemes
+```
+
+
+## plotly
+
+```{r}
+#| label: plotly-01
+#| warning: false
+#| message: false
+
+# Gráfico de dispersión de PIB per cápita vs esperanza de vida al nacer
+grafico_ggplot2 <-
+  paises |>
+  ggplot(aes(x = GDP_PC, y = LIFE_EXPECTANCY, color = CONTINENT)) +
+  geom_point(aes(
+    # datos que se muestran al colocar el ratón sobre un punto
+    text = paste0(
+      "País: ", NAME, "\n",
+      "PIB per cápita: ", GDP_PC, "\n",
+      "Esperanza de vida: ", LIFE_EXPECTANCY
+    )
+  )) +
+  scale_x_continuous(labels = comma, limits = c(0, NA)) +
+  scale_y_continuous(labels = comma, limits = c(50, 90)) +
+  ggtitle("PIB per cápita vs esperanza de vida al nacer por continente") +
+  xlab("PIB per cápita  (USD)") +
+  ylab("Esperanza de vida (años)") +
+  labs(caption = "Fuentes: Natural Earth y Banco Mundial",
+       color = "Continente") +
+  theme_ipsum() # estilo de hrbrthemes
+
+# Gráfico plotly
+ggplotly(grafico_ggplot2, tooltip = "text") |> 
+  config(locale = 'es') # para mostrar los controles en español
+```
+
+## Tipos de gráficos
+
+### Histogramas
+
+```{r}
+#| label: hist-01
+#| 
+
+# Histograma ggplot2 de distribución del PIB per cápita
+histograma_ggplot2 <- 
+  paises |>
+  ggplot(aes(x = POP_EST)) +
+  geom_histogram(
+    aes(
+      text = paste0(
+        "PIB per cápita (valor medio del rango): $", round(after_stat(x), 2), "\n",
+        "Frecuencia: ", after_stat(count)
+      )
+    ), 
+    bins = 10
+  )  +
+  #scale_x_continuous(labels = comma, limits = c(0, NA)) +
+  #coord_cartesian(ylim = c(0, 40)) +
+  ggtitle("Distribución del PIB per cápita") +
+  xlab("PIB per cápita ($ EE.UU.)") +
+  ylab("Frecuencia") +
+  labs(subtitle = "Datos de 201 países", caption = "Fuentes: Natural Earth y Banco Mundial") +
+  theme_economist()
+
+# Histograma plotly
+ggplotly(histograma_ggplot2, tooltip = "text") |> 
+  config(locale = 'es')
+```
+
+
+### Gráficos de pastel
+
+```{r}
+#| label: pastel-01
+
+# Agrupar y resumir los datos
+suma_poblacion_por_region <- paises |>
+  group_by(REGION_UN) |>
+  summarise(POP_TOTAL = sum(POP_EST))
+
+# Calcular porcentajes
+porcentaje_poblacion_por_region <- suma_poblacion_por_region |>
+  mutate(POP_PCT = round(POP_TOTAL / sum(POP_TOTAL) * 100, 1))
+
+# Gráfico de pastel
+grafico_pastel_ggplot2 <-
+  porcentaje_poblacion_por_region |>
+  ggplot(aes(x = "", y = POP_TOTAL, fill = REGION_UN)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  geom_text(
+    aes(label = paste0(POP_PCT, "%")), 
+    color = "black",
+    position = position_stack(vjust = 0.5) # para ajustar la posición del texto en cada porción
+  ) +
+  labs(title = "Distribución de la población por región de la ONU",
+       x = NULL,
+       y = NULL,
+       fill = "Región de la ONU") +
+  theme_void()
+
+# Despliegue del gráfico
+grafico_pastel_ggplot2
+```
+
+
+### Gráficos de barras
+
+#### Con transformaciones estadísticas
+
+```{r}
+#| label: barras-01
+#| warning: false
+#| message: false
+
+# Gráfico de barras con promedio de esperanza de vida
+# para cada región de la ONU
+grafico_barras_ggplot2 <-
+  paises |>
+  ggplot(aes(x = fct_infreq(REGION_UN), y = LIFE_EXPECTANCY)) +
+  geom_bar(
+    stat = "summary", 
+    fun.y = "mean",
+    aes(
+      text = paste0(
+        "Promedio de esperanza de vida: ", round(after_stat(y), 2)
+      )
+    )
+  ) +
+  ggtitle("Promedio de esperanza de vida por región de la ONU") +
+  xlab("Región de la ONU") +
+  ylab("Promedio de esperanza de vida") +
+  labs(caption = "Fuente: ") +
+  theme_economist()
+
+# Gráfico de barras plotly
+ggplotly(grafico_barras_ggplot2, tooltip = "text") |>
+  config(locale = 'es')
+```
+
+
+```{r}
+# Cálculo del promedio de esperanza de vida por región
+promedio_esperanza_vida_por_region <-
+  paises |>
+  group_by(REGION_UN) |>
+  summarize(LIFE_EXPECTANCY_MEAN = mean(LIFE_EXPECTANCY, na.rm = TRUE))
+
+# Despliegue por orden descendente del promedio de esperanza de vida
+promedio_esperanza_vida_por_region |>
+  arrange(desc(LIFE_EXPECTANCY_MEAN))
+```
+
+```{r}
+# Gráfico de barras con promedio de esperanza de vida
+# para cada región de la ONU
+grafico_barras_ggplot2 <-
+  promedio_esperanza_vida_por_region |>
+  ggplot(aes(x = reorder(REGION_UN,-LIFE_EXPECTANCY_MEAN), y = LIFE_EXPECTANCY_MEAN)) +
+  geom_col(
+    aes(
+      text = paste0(
+        "Promedio de esperanza de vida: ", round(after_stat(y), 2)
+      )
+    )    
+  ) +
+  ggtitle("Promedio de esperanza de vida por región de la ONU") +
+  xlab("Región de la ONU") +
+  ylab("Promedio de esperanza de vida") +
+  labs(caption = "Fuente: Natural Earth") +
+  theme_economist()
+
+# Gráfico de barras plotly
+ggplotly(grafico_barras_ggplot2, tooltip = "text") |>
+  config(locale = 'es')
+```
+
+#### Sin transformaciones estadísticas
+
+```{r}
+#| label: barras-02
+
+# Gráfico de barras con población de países 
+# de América
+grafico_barras_ggplot2 <-
+paises |>
+  filter(REGION_UN == "Oceania") |>
+  ggplot(aes(x = reorder(ADM0_ISO, -POP_EST), y = POP_EST/1000000)) +
+  geom_col(
+    aes(
+      text = paste0(
+        "País: ", NAME, "\n",
+        "Población (millones de habitantes): ", round(POP_EST/1000000, 2)
+      )
+    )
+  ) +
+  scale_y_discrete(expand = expansion(mult = c(0.2, 0.2))) + # agrega un 20% de espacio al inicio y al final del eje y
+  # coord_flip() + # para mostrar barras horizontales
+  ggtitle("Población de países de América") +
+  xlab("País") +
+  ylab("Población (millones de habitantes)") +
+  labs(caption = "Fuente: Natural Earth")
+
+# Gráfico de barras plotly
+ggplotly(grafico_barras_ggplot2, tooltip = "text") |> 
+  config(locale = 'es')
+```
+
+
+#### Barras apiladas
+
+```{r}
+#| label: barras-10
+
+# Gráfico de barras apiladas por región de la ONU y nivel de economía
+grafico_barras_ggplot2 <-
+paises |>
+  ggplot(aes(x = REGION_UN, fill = ECONOMY)) +
+  geom_bar() +
+  ggtitle("Cantidad de países por región de la ONU y nivel de economía") +
+  xlab("Región de la ONU") +
+  ylab("Cantidad de países") +
+  labs(fill = "Nivel de economía") +
+  theme_minimal()
+
+# Gráfico de barras plotly
+ggplotly(grafico_barras_ggplot2) |> 
+  config(locale = 'es')
+```
+
+Barras de proporciones
+
+```{r}
+#| label: barras-11
+
+# Gráfico de barras apiladas por región de la ONU y nivel de economía
+grafico_barras_ggplot2 <-
+paises |>
+  ggplot(aes(x = REGION_UN, fill = ECONOMY)) +
+  geom_bar(position = "fill") +
+  ggtitle("Proporción de niveles de economía en regiones de la ONU") +
+  xlab("Región de la ONU") +
+  ylab("Proporción") +
+  labs(fill = "Nivel de economía") +
+  theme_minimal()
+
+# Gráfico de barras plotly
+ggplotly(grafico_barras_ggplot2) |> 
+  config(locale = 'es')
+```
+
+#### Barras agrupadas
+
+```{r}
+#| label: barras-12
+
+# Gráfico de barras agrupadas por región de la ONU y nivel de economía
+grafico_barras_ggplot2 <-
+paises |>
+  ggplot(aes(x = REGION_UN, fill = ECONOMY)) +
+  geom_bar(position = "dodge") +
+  ggtitle("Cantidad de países por región de la ONU y nivel de economía") +
+  xlab("Región de la ONU") +
+  ylab("Cantidad de países") +
+  labs(fill = "Nivel de economía") +
+  theme_minimal()
+
+# Gráfico de barras plotly
+ggplotly(grafico_barras_ggplot2) |> 
+  config(locale = 'es')
 ```
 
